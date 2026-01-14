@@ -1,12 +1,32 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
+
+  function isLevel1() {
+    return firestore.get(/databases/(default)/documents/members/$(request.auth.uid)).data.type == "level1";
+  }
+  function isLevel2(companyId) {
+    return firestore.get(/databases/(default)/documents/companies/$(companyId)/members/$(request.auth.uid)).data.type == "level2";
+  }
+  function isLevel3(companyId, departmentId) {
+    return firestore.get(/databases/(default)/documents/companies/$(companyId)/departments/$(departmentId)/members/$(request.auth.uid)).data.type == "level3";
+  }
+    
   match /b/{bucket}/o {
     match /{allPaths=**} {
-      allow read, write: if false;
+      allow read, write: if isLevel1();
+    }
+      
+    match /companies/{companyId} {
+      match /{allPaths=**} {
+        allow read, write: if isLevel2(companyId);
+      }
+      
+      match /departments/{departmentId} {
+        match /{allPaths=**} {
+          allow read, write: if isLevel3(companyId, departmentId);
+        }
+      }
     }
   }
 }
